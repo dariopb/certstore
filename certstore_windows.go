@@ -308,7 +308,7 @@ func newWinPrivateKey(certCtx *windows.CertContext, publicKey crypto.PublicKey) 
 
 	err := windows.CryptAcquireCertificatePrivateKey(
 		certCtx,
-		windows.CRYPT_ACQUIRE_CACHE_FLAG|windows.CRYPT_ACQUIRE_SILENT_FLAG|windows.CRYPT_ACQUIRE_ONLY_NCRYPT_KEY_FLAG,
+		windows.CRYPT_ACQUIRE_ONLY_NCRYPT_KEY_FLAG,
 		nil,
 		&h,
 		&keySpec,
