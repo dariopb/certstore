@@ -1,3 +1,4 @@
+//go:build windows
 // +build windows
 
 package certstore
@@ -319,7 +320,7 @@ func newWinPrivateKey(certCtx *windows.CertContext, publicKey crypto.PublicKey) 
 		return nil, err
 	}
 
-	if mustFree {
+	if !mustFree {
 		// This shouldn't happen since we're not asking for cached keys.
 		return nil, errors.New("CryptAcquireCertificatePrivateKey set mustFree")
 	}
