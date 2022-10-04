@@ -291,8 +291,8 @@ type winPrivateKey struct {
 	publicKey crypto.PublicKey
 
 	// CNG fields
-	cngHandle uintptr
-	keySpec   uint32
+	cngHandle  uintptr
+	shouldFree bool
 }
 
 // newWinPrivateKey gets a *winPrivateKey for the given certificate.
@@ -302,9 +302,9 @@ func newWinPrivateKey(certCtx *windows.CertContext, publicKey crypto.PublicKey) 
 	}
 
 	var (
-		h        windows.Handle
-		keySpec  uint32
-		mustFree bool
+		h          windows.Handle
+		keySpec    uint32
+		shouldFree bool
 	)
 
 	err := windows.CryptAcquireCertificatePrivateKey(
@@ -313,16 +313,11 @@ func newWinPrivateKey(certCtx *windows.CertContext, publicKey crypto.PublicKey) 
 		nil,
 		&h,
 		&keySpec,
-		&mustFree,
+		&shouldFree,
 	)
 
 	if err != nil {
 		return nil, err
-	}
-
-	if !mustFree {
-		// This shouldn't happen since we're not asking for cached keys.
-		return nil, errors.New("CryptAcquireCertificatePrivateKey set mustFree")
 	}
 
 	if keySpec != windows.CERT_NCRYPT_KEY_SPEC {
@@ -330,8 +325,9 @@ func newWinPrivateKey(certCtx *windows.CertContext, publicKey crypto.PublicKey) 
 	}
 
 	return &winPrivateKey{
-		publicKey: publicKey,
-		cngHandle: uintptr(h),
+		publicKey:  publicKey,
+		cngHandle:  uintptr(h),
+		shouldFree: shouldFree,
 	}, nil
 }
 
@@ -490,7 +486,7 @@ func (wpk *winPrivateKey) Delete() error {
 
 // Close closes this winPrivateKey.
 func (wpk *winPrivateKey) Close() {
-	if wpk.cngHandle != 0 {
+	if wpk.cngHandle != 0 && wpk.shouldFree {
 		nCryptFreeObject.Call(wpk.cngHandle)
 		wpk.cngHandle = 0
 	}
